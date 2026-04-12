@@ -8,12 +8,15 @@ from transformers import pipeline
 app = FastAPI(title="LLMOps RAG API")
 
 # -------------------
-# MODEL + EMBEDDINGS
+# EMBEDDINGS
 # -------------------
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
+# -------------------
+# LOAD FAISS
+# -------------------
 db = FAISS.load_local(
     "faiss_index",
     embeddings,
@@ -22,6 +25,9 @@ db = FAISS.load_local(
 
 retriever = db.as_retriever(search_kwargs={"k": 2})
 
+# -------------------
+# LLM
+# -------------------
 llm = pipeline(
     "text2text-generation",
     model="google/flan-t5-base"
