@@ -1,22 +1,15 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from transformers import pipeline
 
 app = FastAPI(title="LLMOps RAG API")
 
-# -------------------
-# EMBEDDINGS
-# -------------------
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-# -------------------
-# LOAD FAISS
-# -------------------
 db = FAISS.load_local(
     "faiss_index",
     embeddings,
@@ -25,23 +18,14 @@ db = FAISS.load_local(
 
 retriever = db.as_retriever(search_kwargs={"k": 2})
 
-# -------------------
-# LLM
-# -------------------
 llm = pipeline(
     "text2text-generation",
     model="google/flan-t5-base"
 )
 
-# -------------------
-# REQUEST MODEL
-# -------------------
 class Query(BaseModel):
     question: str
 
-# -------------------
-# ROUTES
-# -------------------
 @app.get("/")
 def home():
     return {"status": "LLM RAG API running"}
