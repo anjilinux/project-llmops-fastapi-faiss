@@ -7,3 +7,9 @@ langchain-community
 langchain-huggingface
 langchain-text-splitters
 faiss-cpu
+fastapi
+uvicorn
+transformers
+torch
+langchain
+faiss-cpu
