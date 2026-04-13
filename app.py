@@ -83,3 +83,4 @@ def chat(query: Query):
         "retriever": str(retriever),
         "llm": str(llm)
     }
+
