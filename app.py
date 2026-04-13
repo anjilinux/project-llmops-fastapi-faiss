@@ -13,9 +13,8 @@ class Query(BaseModel):
 
 
 # -------------------
-# ROUTES
+# HOME
 # -------------------
-
 @app.get("/")
 def home():
     return {
@@ -24,7 +23,17 @@ def home():
     }
 
 
-# ✅ ONLY ONE CHAT ENDPOINT
+# -------------------
+# VERSION (IMPORTANT FOR DEBUG)
+# -------------------
+@app.get("/version")
+def version():
+    return {"version": "FINAL_FIXED_V1"}
+
+
+# -------------------
+# CHAT ENDPOINT (SAFE)
+# -------------------
 @app.post("/chat")
 def chat(query: Query):
 
@@ -40,13 +49,30 @@ def chat(query: Query):
                 "Authorization": f"Bearer {HF_API_KEY}",
                 "Content-Type": "application/json"
             },
-            json={"inputs": query.question},
+            json={
+                "inputs": query.question
+            },
             timeout=30
         )
 
-        result = response.json()
+        # ✅ HANDLE HTTP ERRORS
+        if response.status_code != 200:
+            return {
+                "error": "HF API failed",
+                "status_code": response.status_code,
+                "response": response.text
+            }
 
-        # ✅ SAFE parsing (no crash)
+        # ✅ SAFE JSON PARSE
+        try:
+            result = response.json()
+        except Exception:
+            return {
+                "error": "Invalid JSON from HF",
+                "raw_response": response.text
+            }
+
+        # ✅ SAFE RESPONSE FORMAT
         if isinstance(result, list) and len(result) > 0 and "generated_text" in result[0]:
             answer = result[0]["generated_text"]
         else:
@@ -58,10 +84,15 @@ def chat(query: Query):
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "error": str(e)
+        }
+    
 
 
-# 🔍 OPTIONAL DEBUG
-@app.get("/version")
-def version():
-    return {"version": "clean-fixed-router-code"}
+
+
+
+
+
+    
