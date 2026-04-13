@@ -1,16 +1,24 @@
+
 from fastapi import FastAPI
 from pydantic import BaseModel
+import requests
+import os
 
 app = FastAPI(title="LLMOps RAG API - Stable")
 
+# -------------------
+# REQUEST MODEL
+# -------------------
 class Query(BaseModel):
     question: str
 
+
 # -------------------
-# SAFE GLOBALS
+# SAFE GLOBALS (optional FAISS later)
 # -------------------
 retriever = None
 llm = None
+
 
 def load_models():
     global retriever, llm
@@ -58,22 +66,36 @@ def load_models():
 def home():
     return {
         "status": "running",
-        "message": "API stable (no crash)"
+        "message": "API stable (HF API mode)"
     }
+
+
+# ✅ SINGLE CHAT ENDPOINT (HuggingFace API)
+HF_API_KEY = os.getenv("HF_API_KEY")
 
 @app.post("/chat")
 def chat(query: Query):
 
-    # ⚠️ IMPORTANT: DO NOT LOAD MODELS HERE
-    # load_models()
+    if not HF_API_KEY:
+        return {
+            "error": "HF_API_KEY not set in environment variables"
+        }
+
+    response = requests.post(
+        "https://api-inference.huggingface.co/models/google/flan-t5-base",
+        headers={"Authorization": f"Bearer {HF_API_KEY}"},
+        json={"inputs": query.question}
+    )
+
+    result = response.json()
 
     return {
         "question": query.question,
-        "answer": "✅ API working (models disabled to prevent crash)"
+        "answer": result[0]["generated_text"] if isinstance(result, list) else str(result)
     }
 
 
-# 🔍 DEBUG ENDPOINT (use this instead of chat for testing models)
+# 🔍 DEBUG (optional)
 @app.get("/debug")
 def debug():
     load_models()
@@ -82,8 +104,3 @@ def debug():
         "retriever": str(retriever),
         "llm": str(llm)
     }
-
-
-
-
-
