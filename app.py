@@ -7,12 +7,34 @@ class Query(BaseModel):
     question: str
 
 # -------------------
-# ONLY LOAD LIGHT LLM
+# SAFE GLOBALS
 # -------------------
+retriever = None
 llm = None
 
-def load_llm():
-    global llm
+def load_models():
+    global retriever, llm
+
+    if retriever is None:
+        try:
+            from langchain_community.vectorstores import FAISS
+            from langchain_huggingface import HuggingFaceEmbeddings
+
+            embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+
+            db = FAISS.load_local(
+                "faiss_index",
+                embeddings,
+                allow_dangerous_deserialization=True
+            )
+
+            retriever = db.as_retriever(search_kwargs={"k": 2})
+
+        except Exception as e:
+            print("FAISS load failed:", e)
+            retriever = "FAILED"
 
     if llm is None:
         try:
@@ -20,14 +42,12 @@ def load_llm():
 
             llm = pipeline(
                 "text2text-generation",
-                model="google/flan-t5-small"   # ✅ light model
+                model="google/flan-t5-base"
             )
 
-            print("✅ LLM loaded")
-
         except Exception as e:
-            print("❌ LLM failed:", e)
-            llm = None
+            print("LLM load failed:", e)
+            llm = "FAILED"
 
 
 # -------------------
@@ -38,26 +58,32 @@ def load_llm():
 def home():
     return {
         "status": "running",
-        "message": "LLM only mode (FAISS disabled)"
+        "message": "API stable (no crash)"
     }
-
 
 @app.post("/chat")
 def chat(query: Query):
 
-    load_llm()
-
-    if llm is None:
-        return {
-            "answer": "❌ LLM failed to load"
-        }
-
-    result = llm(query.question, max_length=100)
+    # ⚠️ IMPORTANT: DO NOT LOAD MODELS HERE
+    # load_models()
 
     return {
         "question": query.question,
-        "answer": result[0]["generated_text"]
+        "answer": "✅ API working (models disabled to prevent crash)"
     }
+
+
+# 🔍 DEBUG ENDPOINT (use this instead of chat for testing models)
+@app.get("/debug")
+def debug():
+    load_models()
+
+    return {
+        "retriever": str(retriever),
+        "llm": str(llm)
+    }
+
+
 
 
 
