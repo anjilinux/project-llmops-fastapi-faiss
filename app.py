@@ -1,63 +1,32 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI(title="LLMOps RAG API")
+app = FastAPI(title="LLMOps RAG API - Stable")
 
-# -------------------
-# REQUEST MODEL
-# -------------------
 class Query(BaseModel):
     question: str
 
 # -------------------
-# GLOBALS (lazy load)
+# ONLY LOAD LIGHT LLM
 # -------------------
-retriever = None
 llm = None
 
-# -------------------
-# LOAD MODELS SAFELY
-# -------------------
-def load_models():
-    global retriever, llm
+def load_llm():
+    global llm
 
-    # -------- FAISS --------
-    if retriever is None:
-        try:
-            from langchain_community.vectorstores import FAISS
-            from langchain_huggingface import HuggingFaceEmbeddings
-
-            embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2"
-            )
-
-            db = FAISS.load_local(
-                "faiss_index",
-                embeddings,
-                allow_dangerous_deserialization=True
-            )
-
-            retriever = db.as_retriever(search_kwargs={"k": 2})
-            print("✅ FAISS loaded")
-
-        except Exception as e:
-            print("❌ FAISS load failed:", e)
-            retriever = None
-
-    # -------- LLM --------
     if llm is None:
         try:
             from transformers import pipeline
 
             llm = pipeline(
                 "text2text-generation",
-                model="google/flan-t5-small"   # ✅ lighter model
+                model="google/flan-t5-small"   # ✅ light model
             )
 
             print("✅ LLM loaded")
 
         except Exception as e:
-            print("❌ LLM load failed:", e)
+            print("❌ LLM failed:", e)
             llm = None
 
 
@@ -69,18 +38,23 @@ def load_models():
 def home():
     return {
         "status": "running",
-        "message": "API live (safe mode)"
+        "message": "LLM only mode (FAISS disabled)"
     }
 
 
-# 🔥 DEBUG CHAT (NO HEAVY PROCESSING)
 @app.post("/chat")
 def chat(query: Query):
 
-    load_models()
+    load_llm()
+
+    if llm is None:
+        return {
+            "answer": "❌ LLM failed to load"
+        }
+
+    result = llm(query.question, max_length=100)
 
     return {
-        "retriever": str(retriever),
-        "llm": str(llm)
+        "question": query.question,
+        "answer": result[0]["generated_text"]
     }
-
