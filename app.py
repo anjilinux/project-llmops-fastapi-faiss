@@ -19,20 +19,20 @@ class Query(BaseModel):
 def home():
     return {
         "status": "running",
-        "message": "API stable (HF router mode)"
+        "message": "API stable (HF router FINAL)"
     }
 
 
 # -------------------
-# VERSION (IMPORTANT FOR DEBUG)
+# VERSION (DEBUG)
 # -------------------
 @app.get("/version")
 def version():
-    return {"version": "FINAL_FIXED_V1"}
+    return {"version": "FINAL_WORKING_V2"}
 
 
 # -------------------
-# CHAT ENDPOINT (SAFE)
+# CHAT ENDPOINT (FINAL FIX)
 # -------------------
 @app.post("/chat")
 def chat(query: Query):
@@ -44,7 +44,8 @@ def chat(query: Query):
 
     try:
         response = requests.post(
-            "https://router.huggingface.co/hf-inference/models/google/flan-t5-base",
+            # ✅ FINAL WORKING URL
+            "https://router.huggingface.co/hf-inference/models/google/flan-t5-base?provider=hf-inference",
             headers={
                 "Authorization": f"Bearer {HF_API_KEY}",
                 "Content-Type": "application/json"
@@ -72,7 +73,7 @@ def chat(query: Query):
                 "raw_response": response.text
             }
 
-        # ✅ SAFE RESPONSE FORMAT
+        # ✅ SAFE RESPONSE EXTRACTION
         if isinstance(result, list) and len(result) > 0 and "generated_text" in result[0]:
             answer = result[0]["generated_text"]
         else:
@@ -87,12 +88,3 @@ def chat(query: Query):
         return {
             "error": str(e)
         }
-    
-
-
-
-
-
-
-
-    
