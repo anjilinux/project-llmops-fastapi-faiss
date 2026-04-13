@@ -3,18 +3,25 @@ from pydantic import BaseModel
 
 app = FastAPI(title="LLMOps RAG API")
 
+# -------------------
+# REQUEST MODEL
+# -------------------
 class Query(BaseModel):
     question: str
 
 # -------------------
-# SAFE INIT (lazy load)
+# GLOBALS (lazy load)
 # -------------------
 retriever = None
 llm = None
 
+# -------------------
+# LOAD MODELS SAFELY
+# -------------------
 def load_models():
     global retriever, llm
 
+    # ---- FAISS ----
     if retriever is None:
         try:
             from langchain_community.vectorstores import FAISS
@@ -31,11 +38,13 @@ def load_models():
             )
 
             retriever = db.as_retriever(search_kwargs={"k": 2})
+            print("✅ FAISS loaded")
 
         except Exception as e:
-            print("FAISS load failed:", e)
+            print("❌ FAISS load failed:", e)
             retriever = None
 
+    # ---- LLM ----
     if llm is None:
         try:
             from transformers import pipeline
@@ -45,8 +54,10 @@ def load_models():
                 model="google/flan-t5-base"
             )
 
+            print("✅ LLM loaded")
+
         except Exception as e:
-            print("LLM load failed:", e)
+            print("❌ LLM load failed:", e)
             llm = None
 
 
@@ -56,39 +67,19 @@ def load_models():
 
 @app.get("/")
 def home():
-    return {"status": "running", "message": "API live (safe mode)"}
+    return {
+        "status": "running",
+        "message": "API live (safe mode)"
+    }
 
 
+# 🔥 DEBUG VERSION (temporary)
 @app.post("/chat")
 def chat(query: Query):
 
     load_models()
 
-    # fallback if models not loaded
-    if retriever is None or llm is None:
-        return {
-            "question": query.question,
-            "answer": "⚠️ Model not loaded (FAISS/LLM failed on server)"
-        }
-
-    docs = retriever.invoke(query.question)
-    context = "\n".join([d.page_content for d in docs])
-
-    prompt = f"""
-Answer using only context:
-
-Context:
-{context}
-
-Question:
-{query.question}
-
-Answer:
-"""
-
-    result = llm(prompt, max_length=120, do_sample=False)
-
     return {
-        "question": query.question,
-        "answer": result[0]["generated_text"]
+        "retriever": str(retriever),
+        "llm": str(llm)
     }
