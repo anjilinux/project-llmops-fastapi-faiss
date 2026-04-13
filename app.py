@@ -54,3 +54,6 @@ Answer:
         "question": query.question,
         "answer": result[0]["generated_text"]
     }
+
+
+
