@@ -21,7 +21,7 @@ llm = None
 def load_models():
     global retriever, llm
 
-    # ---- FAISS ----
+    # -------- FAISS --------
     if retriever is None:
         try:
             from langchain_community.vectorstores import FAISS
@@ -44,14 +44,14 @@ def load_models():
             print("❌ FAISS load failed:", e)
             retriever = None
 
-    # ---- LLM ----
+    # -------- LLM --------
     if llm is None:
         try:
             from transformers import pipeline
 
             llm = pipeline(
                 "text2text-generation",
-                model="google/flan-t5-base"
+                model="google/flan-t5-small"   # ✅ lighter model
             )
 
             print("✅ LLM loaded")
@@ -73,7 +73,7 @@ def home():
     }
 
 
-# 🔥 DEBUG VERSION (temporary)
+# 🔥 DEBUG CHAT (NO HEAVY PROCESSING)
 @app.post("/chat")
 def chat(query: Query):
 
@@ -83,4 +83,3 @@ def chat(query: Query):
         "retriever": str(retriever),
         "llm": str(llm)
     }
-
