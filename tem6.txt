@@ -1,0 +1,28 @@
+{
+  "question": "What is LLMOps?"
+}
+
+
+
+
+curl -X POST "https://project-llmops-fastapi-faiss.onrender.com/chat" \
+-H "Content-Type: application/json" \
+-d '{"question":"hello"}'
+
+
+
+
+
+
+{
+  "question": "hello"
+}
+
+
+
+
+
+
+
+
+
