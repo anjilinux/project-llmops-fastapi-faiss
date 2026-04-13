@@ -10,12 +10,12 @@ class Query(BaseModel):
 def home():
     return {
         "status": "running",
-        "message": "FastAPI is deployed successfully on Render"
+        "message": "FastAPI deployed successfully on Render"
     }
 
 @app.post("/chat")
 def chat(query: Query):
     return {
         "question": query.question,
-        "answer": "Render deployment is working (FAISS + LLM temporarily disabled for test)"
+        "answer": "Render deployment working (FAISS + LLM disabled)"
     }
