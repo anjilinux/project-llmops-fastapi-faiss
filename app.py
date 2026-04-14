@@ -5,35 +5,23 @@ import os
 
 app = FastAPI(title="LLMOps RAG API - Stable")
 
-# -------------------
-# REQUEST MODEL
-# -------------------
 class Query(BaseModel):
     question: str
 
 
-# -------------------
-# HOME
-# -------------------
 @app.get("/")
 def home():
     return {
         "status": "running",
-        "message": "API stable (HF router FINAL)"
+        "message": "API stable (HF direct mode)"
     }
 
 
-# -------------------
-# VERSION (DEBUG)
-# -------------------
 @app.get("/version")
 def version():
-    return {"version": "FINAL_WORKING_V2"}
+    return {"version": "FINAL_WORKING_V3"}
 
 
-# -------------------
-# CHAT ENDPOINT (FINAL FIX)
-# -------------------
 @app.post("/chat")
 def chat(query: Query):
 
@@ -44,11 +32,10 @@ def chat(query: Query):
 
     try:
         response = requests.post(
-            # ✅ FINAL WORKING URL
-            "https://router.huggingface.co/hf-inference/models/google/flan-t5-base?provider=hf-inference",
+            # ✅ DIRECT HF ENDPOINT
+            "https://api-inference.huggingface.co/models/google/flan-t5-base",
             headers={
-                "Authorization": f"Bearer {HF_API_KEY}",
-                "Content-Type": "application/json"
+                "Authorization": f"Bearer {HF_API_KEY}"
             },
             json={
                 "inputs": query.question
@@ -56,7 +43,6 @@ def chat(query: Query):
             timeout=30
         )
 
-        # ✅ HANDLE HTTP ERRORS
         if response.status_code != 200:
             return {
                 "error": "HF API failed",
@@ -64,18 +50,16 @@ def chat(query: Query):
                 "response": response.text
             }
 
-        # ✅ SAFE JSON PARSE
         try:
             result = response.json()
         except Exception:
             return {
-                "error": "Invalid JSON from HF",
-                "raw_response": response.text
+                "error": "Invalid JSON",
+                "raw": response.text
             }
 
-        # ✅ SAFE RESPONSE EXTRACTION
-        if isinstance(result, list) and len(result) > 0 and "generated_text" in result[0]:
-            answer = result[0]["generated_text"]
+        if isinstance(result, list) and len(result) > 0:
+            answer = result[0].get("generated_text", str(result))
         else:
             answer = str(result)
 
@@ -85,6 +69,4 @@ def chat(query: Query):
         }
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
