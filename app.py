@@ -13,13 +13,13 @@ class Query(BaseModel):
 def home():
     return {
         "status": "running",
-        "message": "API stable (HF direct mode)"
+        "message": "API stable (Mistral working)"
     }
 
 
 @app.get("/version")
 def version():
-    return {"version": "FINAL_WORKING_V3"}
+    return {"version": "FINAL_WORKING_MISTRAL"}
 
 
 @app.post("/chat")
@@ -32,10 +32,11 @@ def chat(query: Query):
 
     try:
         response = requests.post(
-            # ✅ DIRECT HF ENDPOINT
-            "https://api-inference.huggingface.co/models/google/flan-t5-base",
+            # ✅ WORKING MODEL + ROUTER
+            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2",
             headers={
-                "Authorization": f"Bearer {HF_API_KEY}"
+                "Authorization": f"Bearer {HF_API_KEY}",
+                "Content-Type": "application/json"
             },
             json={
                 "inputs": query.question
@@ -70,3 +71,8 @@ def chat(query: Query):
 
     except Exception as e:
         return {"error": str(e)}
+    
+
+
+
+    
