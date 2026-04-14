@@ -5,27 +5,18 @@ import os
 
 app = FastAPI(title="LLMOps RAG API - FINAL")
 
-# -------------------
-# REQUEST MODEL
-# -------------------
 class Query(BaseModel):
     question: str
 
 
-# -------------------
-# HOME
-# -------------------
 @app.get("/")
 def home():
     return {
         "status": "running",
-        "version": "FINAL_STABLE_OK"
+        "version": "FINAL_WORKING"
     }
 
 
-# -------------------
-# CHAT (100% SAFE)
-# -------------------
 @app.post("/chat")
 def chat(query: Query):
 
@@ -36,16 +27,21 @@ def chat(query: Query):
 
     try:
         response = requests.post(
-            "https://router.huggingface.co/hf-inference/models/google/flan-t5-base",
+            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2",
             headers={
                 "Authorization": f"Bearer {HF_API_KEY}",
                 "Content-Type": "application/json"
             },
-            json={"inputs": query.question},
+            json={
+                "inputs": query.question,
+                "parameters": {
+                    "max_new_tokens": 100
+                }
+            },
             timeout=30
         )
 
-        # ✅ HANDLE NON-200 RESPONSE
+        # 👇 VERY IMPORTANT (avoid crash)
         if response.status_code != 200:
             return {
                 "error": "HF API failed",
@@ -53,16 +49,8 @@ def chat(query: Query):
                 "response": response.text
             }
 
-        # ✅ SAFE JSON PARSE
-        try:
-            result = response.json()
-        except Exception:
-            return {
-                "error": "Invalid JSON from HF",
-                "raw_response": response.text
-            }
+        result = response.json()
 
-        # ✅ SAFE OUTPUT
         if isinstance(result, list) and "generated_text" in result[0]:
             answer = result[0]["generated_text"]
         else:
@@ -75,9 +63,5 @@ def chat(query: Query):
 
     except Exception as e:
         return {
-            "error": "Internal error",
-            "details": str(e)
+            "error": str(e)
         }
-    
-
-    
