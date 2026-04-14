@@ -65,3 +65,6 @@ def chat(query: Query):
         return {
             "error": str(e)
         }
+    
+
+    
