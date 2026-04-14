@@ -3,25 +3,29 @@ from pydantic import BaseModel
 import requests
 import os
 
-app = FastAPI(title="LLMOps RAG API - Stable")
+app = FastAPI(title="LLMOps RAG API - FINAL")
 
+# -------------------
+# REQUEST MODEL
+# -------------------
 class Query(BaseModel):
     question: str
 
 
+# -------------------
+# HOME
+# -------------------
 @app.get("/")
 def home():
     return {
         "status": "running",
-        "message": "API stable (Mistral working)"
+        "version": "FINAL_STABLE_OK"
     }
 
 
-@app.get("/version")
-def version():
-    return {"version": "FINAL_WORKING_MISTRAL"}
-
-
+# -------------------
+# CHAT (100% SAFE)
+# -------------------
 @app.post("/chat")
 def chat(query: Query):
 
@@ -32,18 +36,16 @@ def chat(query: Query):
 
     try:
         response = requests.post(
-            # ✅ WORKING MODEL + ROUTER
-            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2",
+            "https://router.huggingface.co/hf-inference/models/google/flan-t5-base",
             headers={
                 "Authorization": f"Bearer {HF_API_KEY}",
                 "Content-Type": "application/json"
             },
-            json={
-                "inputs": query.question
-            },
+            json={"inputs": query.question},
             timeout=30
         )
 
+        # ✅ HANDLE NON-200 RESPONSE
         if response.status_code != 200:
             return {
                 "error": "HF API failed",
@@ -51,16 +53,18 @@ def chat(query: Query):
                 "response": response.text
             }
 
+        # ✅ SAFE JSON PARSE
         try:
             result = response.json()
         except Exception:
             return {
-                "error": "Invalid JSON",
-                "raw": response.text
+                "error": "Invalid JSON from HF",
+                "raw_response": response.text
             }
 
-        if isinstance(result, list) and len(result) > 0:
-            answer = result[0].get("generated_text", str(result))
+        # ✅ SAFE OUTPUT
+        if isinstance(result, list) and "generated_text" in result[0]:
+            answer = result[0]["generated_text"]
         else:
             answer = str(result)
 
@@ -70,9 +74,10 @@ def chat(query: Query):
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "error": "Internal error",
+            "details": str(e)
+        }
     
-
-
 
     
